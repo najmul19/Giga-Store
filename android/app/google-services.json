@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "642790942190",
+    "project_id": "gigastore-19",
+    "storage_bucket": "gigastore-19.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:642790942190:android:5140dbdcaf9d0090755aff",
+        "android_client_info": {
+          "package_name": "com.example.giga_store_"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBL1TDh6EpVz_Fel5l9LyS4lLzV1YZk8Kk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
