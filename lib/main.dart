@@ -1,24 +1,13 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_stripe/flutter_stripe.dart';
-import 'package:giga_store_/Admin/add_product.dart';
-import 'package:giga_store_/Admin/admin_login.dart';
-import 'package:giga_store_/Admin/all_orders.dart';
-import 'package:giga_store_/Admin/home_admin.dart';
-import 'package:giga_store_/pages/bottomavigation.dart';
-import 'package:giga_store_/pages/home.dart';
-import 'package:giga_store_/pages/login.dart';
+// import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:giga_store_/pages/onboarding.dart';
-import 'package:giga_store_/pages/order.dart';
-import 'package:giga_store_/pages/product_detail.dart';
-import 'package:giga_store_/pages/profile.dart';
-import 'package:giga_store_/pages/sign_up.dart';
 import 'package:giga_store_/services/constant.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  Stripe.publishableKey = publishableKey;
-  await Firebase.initializeApp();
+  // Stripe.publishableKey = publishableKey;
+  // await Firebase.initializeApp();
   runApp(const MyApp());
 }
 

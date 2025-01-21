@@ -1,259 +1,243 @@
-// ignore_for_file: public_member_api_docs, sort_constructors_first
-import 'dart:convert';
-import 'dart:io';
-import 'package:giga_store_/services/constant.dart';
-import 'package:giga_store_/services/databse.dart';
-import 'package:giga_store_/services/db_helper.dart';
-import 'package:giga_store_/services/shared_preferences.dart';
-import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
-import 'package:flutter_stripe/flutter_stripe.dart';
-import 'package:velocity_x/velocity_x.dart';
+import 'dart:io';
 
-class ProductDetail extends StatefulWidget {
-  String image, name, detail, price;
-  ProductDetail({
-    required this.image,
+import '../services/db_helper.dart';
+import 'cart.dart';
+import 'my_orders.dart';
+
+class DetailsPage extends StatefulWidget {
+  final String name;
+  final String image;
+  final String price;
+  final String detail;
+  final String email;
+
+  const DetailsPage({
     required this.name,
-    required this.detail,
+    required this.image,
     required this.price,
-  });
+    required this.detail,
+    Key? key,
+    required this.email,
+  }) : super(key: key);
 
   @override
-  State<ProductDetail> createState() => _ProductDetailState();
+  State<DetailsPage> createState() => _DetailsPageState();
 }
 
-class _ProductDetailState extends State<ProductDetail> {
-  String? name, email, image;
-  getSharedPref() async {
-    name = await SharedPreferencesHelper().getUserName();
-    email = await SharedPreferencesHelper().getUserEmail();
-    image = await SharedPreferencesHelper().getUserImage();
-    setState(() {});
-  }
+class _DetailsPageState extends State<DetailsPage> {
+   int quantity = 1;
+  Future<void> _placeOrder(BuildContext context) async {
+    final dbHelper = DBHelper();
 
-  onLoad() async {
-    await getSharedPref();
-    setState(() {});
-  }
+    // Insert order into database
+    await dbHelper.insertOrder({
+      'product_id':
+          1, // Replace with actual product ID from context or elsewhere
+      'user_email': widget.email,
+      'product_name': widget.name,
+      // 'test@example.com', // Replace with the logged-in user's email
+      'quantity': quantity, // Replace with selected quantity from QuantitySelector
+      'total_price': (int.parse(widget.price) * quantity)
+          .toString(), // Replace with total price calculation logic
+      'date': DateTime.now().toIso8601String(), // Current date
+    });
 
-  void initState() {
-    super.initState();
-    onLoad();
-  }
-
-  Map<String, dynamic>? paymentIntent;
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Color(0xFFfef5f1),
-      body: Container(
-        padding: EdgeInsets.only(
-          top: 50,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Stack(children: [
-              InkWell(
-                onTap: () {
-                  Navigator.pop(context);
-                },
-                child: Container(
-                    margin: EdgeInsets.only(left: 20),
-                    padding: EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                        border: Border.all(),
-                        borderRadius: BorderRadius.circular(30)),
-                    child: Icon(Icons.arrow_back_ios_new_outlined)),
-              ),
-
-//firebase==================================================================================
-
-              // Center(
-              //   child: Image.network(
-              //     widget.image!,
-              //     height: 400,
-              //   ),
-              // )
-
-//SQLite========================================================================
-
-              Center(
-                child: widget.image.startsWith('http') // Check if it's a URL
-                    ? Image.network(
-                        widget.image,
-                        height: 400,
-                        //fit: BoxFit.fill,
-                      )
-                    : Image.file(
-                        File(widget.image), // Handle local file path
-                        height: 400,
-                        //fit: BoxFit.cover,
-                      ),
-              ),
-            ]),
-            Expanded(
-              child: Container(
-                padding: EdgeInsets.only(
-                  top: 20,
-                  left: 20,
-                  right: 20,
-                ),
-                decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(20),
-                        topRight: Radius.circular(20))),
-                width: MediaQuery.of(context).size.width,
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            widget.name,
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 23,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            "\$" + widget.price,
-                            style: TextStyle(
-                              color: Colors.redAccent,
-                              fontSize: 23,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                      20.heightBox,
-                      "Details".text.bold.xl.make(),
-                      10.heightBox,
-                      Text(widget.detail),
-                      70.heightBox,
-                      InkWell(
-                        onTap: () {
-                          makePayment(widget.price);
-                        },
-                        child: Container(
-                          padding: EdgeInsets.symmetric(vertical: 10),
-                          decoration: BoxDecoration(
-                              color: Colors.redAccent,
-                              borderRadius: BorderRadius.circular(10)),
-                          width: MediaQuery.of(context).size.width,
-                          child: Center(
-                              child: "Buy Now".text.white.bold.xl.make()),
-                        ),
-                      )
-                    ],
-                  ),
-                ),
-              ),
-            )
-          ],
-        ),
-      ),
+    // Show confirmation
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Order placed successfully!")),
     );
   }
 
-  Future<void> makePayment(String ammount) async {
-    try {
-      paymentIntent = await creatPaymentIntent(ammount, 'USD');
-      await Stripe.instance
-          .initPaymentSheet(
-              paymentSheetParameters: SetupPaymentSheetParameters(
-                  paymentIntentClientSecret: paymentIntent?['client_secret'],
-                  style: ThemeMode.dark,
-                  merchantDisplayName: "Najmul"))
-          .then((value) {});
+  Future<void> _addToCart(BuildContext context) async {
+    final dbHelper = DBHelper();
 
-      displayPaymentSheet();
-    } catch (e, s) {
-      print('Exception during payment:$e$s');
-    }
+    // Insert product into cart database
+    await dbHelper.insertCart({
+      'name': widget.name,
+      'image': widget.image,
+      'price': widget.price,
+      'quantity':quantity,
+      'detail': widget.detail,
+      'category': 'Cart', // Example category
+      'status': 'In Cart', // Example status
+      'user_email': widget.email
+      //'test@example.com', // Replace with actual user email
+    });
+
+    // Show confirmation
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Added to cart!")),
+    );
   }
 
-  displayPaymentSheet() async {
-    try {
-      await Stripe.instance.presentPaymentSheet().then((value) async {
-        Map<String, dynamic> orderInfoMap = {
-         // "Product": widget.name,
-          "name": widget.name,       // Column name in SQLite table
-        "price": widget.price,     // Column price in SQLite table
-        "category": email,         // Use category for email association
-        "image": widget.image,     // Column image in SQLite table
-        "detail": widget.detail,   // Column detail in SQLite table
-        // "status": "Pending"
-       };
-
-       // await Databse().orderDetails(orderInfoMap);
-        // Save to SQLite
-      final dbHelper = DBHelper();
-      await dbHelper.insertProduct(orderInfoMap);
-        showDialog(
-            context: context,
-            builder: (_) => AlertDialog(
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.check_circle,
-                            color: Colors.green,
-                          ),
-                          Text("Payment Successfull")
-                        ],
-                      )
-                    ],
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Product Details"),
+        backgroundColor: const Color(0xFF315261),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.list_alt), // My Orders icon
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => MyOrdersPage(userEmail: widget.email),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Product Image
+              Center(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: File(widget.image).existsSync()
+                      ? Image.file(
+                          File(widget.image),
+                          height: 250,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                        )
+                      : const Center(child: Text('No Image')),
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Name and Price
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    widget.name,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ));
-        paymentIntent = null;
-      }).onError((error, stackTrace) {
-        print("Error is :---> $error $StackTrace");
-      });
-    } on StripeException catch (e) {
-      print("Error is:---> $e");
-      showDialog(
-          context: context,
-          builder: (_) => AlertDialog(
-                content: Text("Cancelled"),
-              ));
-    } catch (e) {
-      print("$e");
-    }
-  }
-
-  Future<Map<String, dynamic>> creatPaymentIntent(
-      String amount, String currency) async {
-    try {
-      final body = {
-        'amount': (int.parse(amount) * 100).toString(),
-        'currency': currency,
-        'payment_method_types[]': 'card',
-      };
-      final response = await http.post(
-        Uri.parse('https://api.stripe.com/v1/payment_intents'),
-        headers: {
-          'Authorization': 'Bearer $secretKey', // Ensure this is correct
-          'Content-Type': 'application/x-www-form-urlencoded',
+                  Text(
+                    "\$${widget.price}",
+                    style: const TextStyle(
+                      fontSize: 18,
+                      color: Colors.green,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              // Details Section
+              Text(
+                "Details:",
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                widget.detail,
+                style: const TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 20),
+              // Quantity Selector
+              Row(
+                children: [
+                  const Text(
+                    "Quantity:",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(width: 10),
+                  QuantitySelector(
+                    quantity: quantity, // Pass the current quantity
+                    onQuantityChanged: (newQuantity) {
+                      setState(() {
+                        quantity = newQuantity; // Update the quantity
+                      });
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              // Action Buttons
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton(
+                    onPressed: () => _addToCart(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                    ),
+                    child: const Text("Add to Cart"),
+                  ),
+                  ElevatedButton(
+                    onPressed: () => _placeOrder(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                    ),
+                    child: const Text("Place Order"),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => CartPage(email: widget.email, quantity: quantity,price: widget.price, productName: widget.name,)),
+          );
         },
-        body: body,
-      );
-      return jsonDecode(response.body);
-    } catch (err) {
-      print('Error creating Payment Intent: $err');
-      rethrow;
-    }
+        backgroundColor: Colors.orange,
+        child: const Icon(Icons.shopping_cart),
+      ),
+    );
   }
+}
 
-  calculateAmmount(String ammount) {
-    final calculatedAmmount = {int.parse(ammount) * 100};
-    return calculatedAmmount.toString();
+class QuantitySelector extends StatelessWidget {
+  final int quantity;
+  final Function(int) onQuantityChanged;
+
+  const QuantitySelector({
+    Key? key,
+    required this.quantity,
+    required this.onQuantityChanged,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        IconButton(
+          onPressed: () {
+            if (quantity > 1) {
+              onQuantityChanged(quantity - 1);
+            }
+          },
+          icon: const Icon(Icons.remove),
+        ),
+        Text(
+          "$quantity",
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        IconButton(
+          onPressed: () {
+            onQuantityChanged(quantity + 1);
+          },
+          icon: const Icon(Icons.add),
+        ),
+      ],
+    );
   }
 }

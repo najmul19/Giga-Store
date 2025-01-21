@@ -1,256 +1,93 @@
-import 'dart:io';
-
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
-import 'package:giga_store_/pages/onboarding.dart';
-import 'package:giga_store_/services/auth.dart';
-import 'package:giga_store_/services/shared_preferences.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:random_string/random_string.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velocity_x/velocity_x.dart';
 
+import 'onboarding.dart';
+
 class Profile extends StatefulWidget {
-  const Profile({super.key});
+  final String email, name;
+
+  const Profile({super.key, required this.email, required this.name});
 
   @override
   State<Profile> createState() => _ProfileState();
 }
 
 class _ProfileState extends State<Profile> {
-  String? name, image, email;
+  Future<void> _logout() async {
+    // Clear saved login data
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
 
-  final ImagePicker _picker = ImagePicker();
-  File? selectedImage;
-  getSharedPref() async {
-    image = await SharedPreferencesHelper().getUserImage();
-    name = await SharedPreferencesHelper().getUserName();
-    email = await SharedPreferencesHelper().getUserEmail();
-    setState(() {});
-  }
-
-  @override
-  void initState() {
-    getSharedPref();
-    super.initState();
-  }
-
-  Future getImage() async {
-    var image = await _picker.pickImage(source: ImageSource.gallery);
-    selectedImage = File(image!.path);
-    uploadItem();
-    setState(() {});
-  }
-
-  uploadItem() async {
-    if (selectedImage != null) {
-      String addId = randomAlphaNumeric(10);
-      Reference firebaseStorageRef =
-          FirebaseStorage.instance.ref().child("allImages").child(addId);
-      final UploadTask task = firebaseStorageRef.putFile(selectedImage!);
-      var DownloadTask = (await task).ref.getDownloadURL();
-      await SharedPreferencesHelper().saveUserImage(DownloadTask as String);
-    }
+    // Navigate back to the login page
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => Onboarding()),
+      (route) => false, // Remove all routes
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final displayName = widget.name.isNotEmpty ? widget.name : "Unknown User";
+    final displayEmail =
+        widget.email.isNotEmpty ? widget.email : "No Email Provided";
+
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Color(0xffecefe8),
+        backgroundColor: const Color(0xffecefe8),
         centerTitle: true,
         title: "Profile".text.xl3.bold.black.make(),
       ),
-      backgroundColor: Color(0xffecefe8),
-      body: name == null
-          ? Center(child: CircularProgressIndicator())
-          : Container(
-              child: Column(children: [
-                selectedImage != null
-                    ? Center(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(70),
-                          child: Image.file(
-                            selectedImage!,
-                            height: 90,
-                            width: 90,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      )
-                    : InkWell(
-                        onTap: () {
-                          getImage();
+      backgroundColor: const Color(0xffecefe8),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Display Name
+            displayName.text.xl3.bold.make(),
+            10.heightBox, // Space between items
+
+            // Display Email
+            displayEmail.text.xl2.make(),
+            20.heightBox, // Space between email and logout icon
+
+            // Logout Icon
+            IconButton(
+              icon: const Icon(
+                Icons.logout,
+                size: 30,
+                color: Colors.red,
+              ),
+              onPressed: () {
+                // Show confirmation dialog for logout
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text("Confirm Logout"),
+                    content: const Text("Are you sure you want to log out?"),
+                    actions: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(context); // Close dialog
                         },
-                        child: Center(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(70),
-                            child: Image.network(
-                              image!,
-                              height: 90,
-                              width: 90,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ),
+                        child: const Text("Cancel"),
                       ),
-                20.heightBox,
-                Container(
-                  margin: EdgeInsets.only(left: 20, right: 20),
-                  child: Material(
-                    borderRadius: BorderRadius.circular(10),
-                    elevation: 3.0,
-                    child: Container(
-                      padding: EdgeInsets.all(10),
-                      // padding: EdgeInsets.only(
-                      //     left: 10, right: 10, top: 10, bottom: 10),
-                      width: MediaQuery.of(context).size.width,
-                      decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20)),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.person_2_outlined,
-                            size: 35,
-                          ),
-                          10.widthBox,
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              "Name".text.gray600.xl2.make(),
-                              name!.text.black.bold.xl2.make()
-                            ],
-                          )
-                        ],
+                      TextButton(
+                        onPressed: () async {
+                          Navigator.pop(context); // Close dialog
+                          await _logout(); // Clear login data and navigate to login page
+                        },
+                        child: const Text("Logout"),
                       ),
-                    ),
+                    ],
                   ),
-                ),
-                20.heightBox,
-                Container(
-                  margin: EdgeInsets.only(left: 20, right: 20),
-                  child: Material(
-                    borderRadius: BorderRadius.circular(10),
-                    elevation: 3.0,
-                    child: Container(
-                      padding: EdgeInsets.all(10),
-                      // padding: EdgeInsets.only(
-                      //     left: 10, right: 10, top: 10, bottom: 10),
-                      width: MediaQuery.of(context).size.width,
-                      decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20)),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.mail_outline,
-                            size: 35,
-                          ),
-                          10.widthBox,
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  "Email".text.gray600.xl2.make(),
-                                  FittedBox(
-                                    fit: BoxFit
-                                        .scaleDown, // Scales text down if it's too big
-                                    child: email!.text.black.bold.xl3.make(),
-                                  )
-                                      .box
-                                      .width(250)
-                                      .make(), // Set max width for the email container
-                                ],
-                              )
-                            ],
-                          )
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                20.heightBox,
-                InkWell(
-                  onTap: () async {
-                    await Auth().signOutUser().then((value) {
-                      Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => Onboarding()));
-                    });
-                  },
-                  child: Container(
-                    margin: EdgeInsets.only(left: 20, right: 20),
-                    child: Material(
-                      borderRadius: BorderRadius.circular(10),
-                      elevation: 3.0,
-                      child: Container(
-                        padding: EdgeInsets.all(10),
-                        // padding: EdgeInsets.only(
-                        //     left: 10, right: 10, top: 10, bottom: 10),
-                        width: MediaQuery.of(context).size.width,
-                        decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(20)),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.logout,
-                              size: 35,
-                            ),
-                            10.widthBox,
-                            "LogOut".text.bold.black.xl2.make(),
-                            Spacer(),
-                            Icon(Icons.arrow_forward_ios_outlined)
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                20.heightBox,
-                InkWell(
-                  onTap: () async {
-                    await Auth().deleteUser().then((value) {
-                      Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => Onboarding()));
-                    });
-                  },
-                  child: Container(
-                    margin: EdgeInsets.only(left: 20, right: 20),
-                    child: Material(
-                      borderRadius: BorderRadius.circular(10),
-                      elevation: 3.0,
-                      child: Container(
-                        padding: EdgeInsets.all(10),
-                        // padding: EdgeInsets.only(
-                        //     left: 10, right: 10, top: 10, bottom: 10),
-                        width: MediaQuery.of(context).size.width,
-                        decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(20)),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.delete_outline,
-                              size: 35,
-                            ),
-                            10.widthBox,
-                            "Delte Account".text.bold.black.xl2.make(),
-                            Spacer(),
-                            Icon(Icons.arrow_forward_ios_outlined)
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ]),
+                );
+              },
             ),
+          ],
+        ),
+      ),
     );
   }
 }

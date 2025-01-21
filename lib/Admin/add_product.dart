@@ -1,12 +1,7 @@
 import 'dart:io';
-
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
-import 'package:giga_store_/services/databse.dart';
 import 'package:giga_store_/services/db_helper.dart';
-import 'package:giga_store_/widget/helping_widget.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:random_string/random_string.dart';
 import 'package:velocity_x/velocity_x.dart';
 
 class AddProduct extends StatefulWidget {
@@ -58,12 +53,11 @@ class _AddProductState extends State<AddProduct> {
   uploadItem() async {
     if (selectedImage != null && nameController.text.isNotEmpty) {
       String imagePath = selectedImage!.path; // Store file path
-     
+
       Map<String, dynamic> addProduct = {
         "name": nameController.text,
         "image": imagePath,
         "price": priceController.text,
-    
         "detail": detailController.text,
         "category": value ?? '',
       };

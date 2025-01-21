@@ -1,10 +1,10 @@
-// import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:giga_store_/Admin/home_admin.dart';
 import 'package:giga_store_/pages/bottomavigation.dart';
-import 'package:giga_store_/pages/home.dart';
 import 'package:giga_store_/pages/sign_up.dart';
+import 'package:giga_store_/services/auth_db_helper.dart';
+import 'package:giga_store_/services/forgot_password_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velocity_x/velocity_x.dart';
 
 class LoginPage extends StatefulWidget {
@@ -16,32 +16,84 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
-  final emailController = TextEditingController();
-  final passwordController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _isPasswordVisible = false;
 
-  bool changeBtn = false;
+  @override
+  void initState() {
+    super.initState();
+    _checkLoginState();
+  }
 
-  String? email, password;
+  Future<void> _checkLoginState() async {
+    final prefs = await SharedPreferences.getInstance();
+    final email = prefs.getString('email');
+    final username = prefs.getString('username');
 
-  login() async {
+    if (email != null && username != null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => Bottomavigation(
+            userName: username,
+            userImage: 'images/nj.png',
+            userEmail: email,
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _saveLoginState(String email, String username) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('email', email);
+    await prefs.setString('username', username);
+  }
+
+  Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
+      final email = _emailController.text;
+      final password = _passwordController.text;
+
+      if (email == 'admin' && password == 'admin') {
+        _emailController.clear();
+        _passwordController.clear();
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => HomeAdmin()),
+        );
+        return;
+      }
+
       try {
-        await FirebaseAuth.instance
-            .signInWithEmailAndPassword(email: email!, password: password!);
-        Navigator.push(context,
-            MaterialPageRoute(builder: (context) => Bottomavigation()));
-      } on FirebaseAuthException catch (e) {
-        if (e.code == 'user-not-found') {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            backgroundColor: Colors.green,
-            content: "No User Found for that Email".text.xl2.make(),
-          ));
-        } else if (e.code == 'wrong-password') {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            backgroundColor: Colors.green,
-            content: "Wrong Password Provided by the user".text.xl2.make(),
-          ));
+        final user = await AuthDBHelper().loginUser(email, password);
+
+        if (user != null) {
+          _saveLoginState(user['email'], user['username']); // Save login state
+          _emailController.clear();
+          _passwordController.clear();
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => Bottomavigation(
+                userName: user['username'],
+                userImage: 'images/nj.png',
+                userEmail: user["email"],
+              ),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Invalid email or password'),
+            ),
+          );
         }
+      } catch (error) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Something went wrong: $error')),
+        );
       }
     }
   }
@@ -63,7 +115,7 @@ class _LoginPageState extends State<LoginPage> {
               children: [
                 // Login Image
                 Image.asset(
-                  "images/login_image.png", // Ensure the path is correct and the asset is added in pubspec.yaml
+                  "images/login_image.png",
                   fit: BoxFit.cover,
                 ),
                 const SizedBox(height: 20),
@@ -71,7 +123,7 @@ class _LoginPageState extends State<LoginPage> {
                 // Welcome Text
                 Text(
                   "Welcome Back",
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
                   ),
@@ -84,15 +136,15 @@ class _LoginPageState extends State<LoginPage> {
                     // Email Field
                     Container(
                       decoration: BoxDecoration(
-                          color: Color(0xFFF4F5F9),
-                          borderRadius: BorderRadius.circular(10)),
+                        color: const Color(0xFFF4F5F9),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                       child: TextFormField(
-                        controller: emailController,
-                        decoration: InputDecoration(
+                        controller: _emailController,
+                        decoration: const InputDecoration(
                           border: InputBorder.none,
                           hintText: "Enter Email",
                           labelText: "Email",
-                          // border: OutlineInputBorder(),
                           prefixIcon: Icon(Icons.email),
                         ),
                         validator: (value) {
@@ -103,25 +155,38 @@ class _LoginPageState extends State<LoginPage> {
                         },
                       ),
                     ),
-                    16.heightBox,
+                    const SizedBox(height: 16),
 
-                    // Password Field
+                    // Password Field with Eye Icon
                     Container(
                       decoration: BoxDecoration(
-                          color: Color(0xFFF4F5F9),
-                          borderRadius: BorderRadius.circular(10)),
+                        color: const Color(0xFFF4F5F9),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                       child: TextFormField(
-                        controller: passwordController,
+                        controller: _passwordController,
+                        obscureText: !_isPasswordVisible,
                         decoration: InputDecoration(
                           border: InputBorder.none,
                           hintText: "Enter Password",
                           labelText: "Password",
-                          // border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.lock),
+                          prefixIcon: const Icon(Icons.lock),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _isPasswordVisible
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _isPasswordVisible = !_isPasswordVisible;
+                              });
+                            },
+                          ),
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return "Email cannot be empty";
+                            return "Password cannot be empty";
                           }
                           return null;
                         },
@@ -129,82 +194,46 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ],
                 ),
-                10.heightBox,
+                const SizedBox(height: 10),
+
+                // Forgot Password
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    "Forgot Password".text.black.bold.xl.make(),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ForgotPasswordPage(),
+                          ),
+                        );
+                      },
+                      child: const Text('Forgot Password?'),
+                    ),
                   ],
                 ),
-                16.heightBox,
+                const SizedBox(height: 16),
+
                 // Login Button
-                // Material(
-                //   color: Colors.deepPurple,
-                //   borderRadius: BorderRadius.circular(changeBtn ? 50 : 8),
-                //   child: InkWell(
-                //     onTap: () async {
-                //       if (_formKey.currentState!.validate()) {
-                //         setState(() {
-                //           changeBtn = true;
-                //           email = emailController.text;
-                //           password = passwordController.text;
-                //         });
-                //         await Future.delayed(Duration(seconds: 1));
-
-                //         setState(() {
-                //           changeBtn = false;
-                //         });
-                //          login();
-                //       }
-
-                //     },
-                //     child: AnimatedContainer(
-                //       duration: Duration(seconds: 1),
-                //       width: changeBtn ? 50 : 150,
-                //       height: 50,
-                //       alignment: Alignment.center,
-                //       child: changeBtn
-                //           ? Icon(Icons.done, color: Colors.white)
-                //           : Text(
-                //               "Login",
-                //               style: TextStyle(
-                //                   color: Colors.white,
-                //                   fontWeight: FontWeight.bold,
-                //                   fontSize: 18),
-                //             ),
-                //     ),
-                //   ),
-                // ),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () {
-                      if (_formKey.currentState!.validate()) {
-                        setState(() {
-                          email = emailController.text;
-                          password = passwordController.text;
-                        });
-                      }
-                      login();
-                    },
-                    child: Text('Login'),
+                    onPressed: _login,
+                    child: const Text('Sign In'),
                   ),
                 ),
-                16.heightBox,
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    "Don't have an account?".text.make(),
-                    InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => SignUp()),
-                          );
-                        },
-                        child: " Sign Up".text.black.bold.make()),
-                  ],
-                )
+
+                // Sign Up Redirect
+                TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SignUp()),
+                    );
+                  },
+                  child: const Text('Don’t have an account? Sign Up'),
+                ),
               ],
             ),
           ),

@@ -1,305 +1,243 @@
-// ignore_for_file: public_member_api_docs, sort_constructors_first
-import 'dart:ffi';
+// import 'package:flutter/material.dart';
+// import 'package:giga_store_/pages/catagory_products.dart';
+
+// import 'package:velocity_x/velocity_x.dart';
+
+import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:giga_store_/pages/catagory_products.dart';
-import 'package:giga_store_/services/shared_preferences.dart';
 import 'package:velocity_x/velocity_x.dart';
-
-import 'package:giga_store_/pages/onboarding.dart';
-import 'package:giga_store_/widget/helping_widget.dart';
+import '../services/db_helper.dart';
+import 'catagory_products.dart';
+import 'product_detail.dart'; // Import your CatagoryProducts page
 
 class Home extends StatefulWidget {
-  const Home({super.key});
+  final String name;
+  final String image;
+  final String email;
+
+  const Home(
+      {required this.name,
+      required this.image,
+      super.key,
+      required this.email});
 
   @override
   State<Home> createState() => _HomeState();
 }
 
 class _HomeState extends State<Home> {
-  List catgories = [
+  List categories = [
     "images/laptop.png",
     "images/headphone_icon.png",
     "images/watch.png",
     "images/TV.png",
   ];
 
-  List catagoryName = [
+  List categoryName = [
     "Laptop",
     "Headphones",
     'Watch',
     'TV',
   ];
 
-  var queryResultSet = [];
-  var tempSearchStore = [];
-
-  String? name, image;
-
-  getSharedPrefref() async {
-    name = await SharedPreferencesHelper().getUserName();
-    image = await SharedPreferencesHelper().getUserImage();
-    setState(() {});
-  }
-
-  ontheLoad() async {
-    await getSharedPrefref();
-    setState(() {});
-  }
+  List allProducts = []; // Store fetched products here
 
   @override
   void initState() {
-    ontheLoad();
     super.initState();
+    _fetchAllProducts(); // Fetch products when the widget initializes
   }
 
-//-------------------------------
+  Future<void> _fetchAllProducts() async {
+    final dbHelper = DBHelper(); // Create instance of DBHelper
+    try {
+      final data = await dbHelper.db
+          .then((db) => db.query('products')); // Query products
+      if (data.isNotEmpty) {
+        debugPrint("Fetched products: $data"); // Log fetched data
+        setState(() {
+          allProducts = data; // Assign fetched data to allProducts
+        });
+      } else {
+        debugPrint("No products found in the database.");
+      }
+    } catch (e) {
+      debugPrint("Error fetching products: $e");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xffecefe8),
-      body: SingleChildScrollView(
-        child: name == null
-            ? Center(child: CircularProgressIndicator())
-            : Container(
-                margin: EdgeInsets.only(top: 50, left: 20, right: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(120),
+        child: AppBar(
+          automaticallyImplyLeading: false,
+          backgroundColor: const Color.fromARGB(255, 49, 82, 97),
+          elevation: 0,
+          flexibleSpace: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "Hey, " + name!,
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Text(
-                              "Welcome",
-                              style: TextStyle(
-                                  color: Colors.black45,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w500),
-                            ),
-                          ],
+                        Text(
+                          "Hey, ${widget.name}",
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(50),
-                          child: Image.network(
-                            image!,
-                            height: 60,
-                            width: 60,
-                            fit: BoxFit.cover,
+                        const Text(
+                          "Welcome",
+                          style: TextStyle(
+                            color: Colors.black45,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
                     ),
-                    SizedBox(
-                      height: 30,
-                    ),
-                    Container(
-                      decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(10)),
-                      //width: MediaQuery.of(context).size.width, child: TextField()
-                      child: TextField(
-                        decoration: InputDecoration(
-                            border: InputBorder.none,
-                            hintText: "Search Product",
-                            hintStyle: AppWidget.lightTextFieldStyle(),
-                            prefixIcon: Icon(
-                              Icons.search,
-                              color: Colors.black,
-                            )),
-                      ),
-                    ),
-                    20.heightBox,
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        "Catagories".text.black.xl2.bold.make(),
-                        "See all".text.red600.xl.bold.make(),
-                      ],
-                    ),
-                    20.heightBox,
-                    Row(
-                      children: [
-                        Container(
-                          height: 120,
-                          padding: EdgeInsets.all(20),
-                          margin: EdgeInsets.only(right: 20),
-                          decoration: BoxDecoration(
-                            color: Colors.redAccent,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Center(child: "All".text.white.xl.bold.make()),
-                        ),
-                        Expanded(
-                          child: Container(
-                            height: 120,
-                            child: ListView.builder(
-                                padding: EdgeInsets.zero,
-                                itemCount: catgories.length,
-                                shrinkWrap: true,
-                                scrollDirection: Axis.horizontal,
-                                itemBuilder: (context, index) {
-                                  return CatagoryTile(
-                                    image: catgories[index],
-                                    name: catagoryName[index],
-                                  );
-                                }),
-                          ),
-                        ),
-                      ],
-                    ),
-                    20.heightBox,
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        "All Products".text.black.xl2.bold.make(),
-                        "See all".text.red600.xl.bold.make(),
-                      ],
-                    ),
-                    20.heightBox,
-                    Container(
-                      height: 240,
-                      child: ListView(
-                        shrinkWrap: true,
-                        scrollDirection: Axis.horizontal,
-                        children: [
-                          Container(
-                            margin: EdgeInsets.only(right: 20),
-                            padding: EdgeInsets.symmetric(horizontal: 20),
-                            decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(10)),
-                            child: Column(
-                              children: [
-                                Image.asset(
-                                  "images/laptop2.png",
-                                  height: 150,
-                                  width: 150,
-                                  fit: BoxFit.cover,
-                                ),
-                                "Laptop".text.bold.xl.make(),
-                                10.heightBox,
-                                Row(
-                                  children: [
-                                    "\$3000".text.red600.bold.xl.make(),
-                                    SizedBox(
-                                      width: 50,
-                                    ),
-                                    Container(
-                                        padding: EdgeInsets.all(5),
-                                        decoration: BoxDecoration(
-                                            color: Colors.redAccent,
-                                            borderRadius:
-                                                BorderRadius.circular(7)),
-                                        child: Icon(
-                                          Icons.add,
-                                          color: Colors.white,
-                                        ))
-                                  ],
-                                ),
-                              ],
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(50),
+                      child: widget.image.startsWith('http')
+                          ? Image.network(
+                              widget.image,
+                              height: 60,
+                              width: 60,
+                              fit: BoxFit.cover,
+                            )
+                          : Image.asset(
+                              widget.image,
+                              height: 60,
+                              width: 60,
+                              fit: BoxFit.cover,
                             ),
-                          ),
-                          Container(
-                            margin: EdgeInsets.only(right: 20),
-                            padding: EdgeInsets.symmetric(horizontal: 20),
-                            decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(10)),
-                            child: Column(
-                              children: [
-                                Image.asset(
-                                  "images/headphone2.png",
-                                  height: 150,
-                                  width: 150,
-                                  fit: BoxFit.cover,
-                                ),
-                                "Headphpne".text.bold.xl.make(),
-                                10.heightBox,
-                                Row(
-                                  children: [
-                                    "\$100".text.red600.bold.xl.make(),
-                                    SizedBox(
-                                      width: 50,
-                                    ),
-                                    Container(
-                                        padding: EdgeInsets.all(5),
-                                        decoration: BoxDecoration(
-                                            color: Colors.redAccent,
-                                            borderRadius:
-                                                BorderRadius.circular(7)),
-                                        child: Icon(
-                                          Icons.add,
-                                          color: Colors.white,
-                                        ))
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: EdgeInsets.symmetric(horizontal: 20),
-                            decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(10)),
-                            child: Column(
-                              children: [
-                                Image.asset(
-                                  "images/watch2.png",
-                                  height: 150,
-                                  width: 150,
-                                  fit: BoxFit.cover,
-                                ),
-                                "Apple Watch".text.bold.xl.make(),
-                                10.heightBox,
-                                Row(
-                                  children: [
-                                    "\$500".text.red600.bold.xl.make(),
-                                    SizedBox(
-                                      width: 50,
-                                    ),
-                                    Container(
-                                        padding: EdgeInsets.all(5),
-                                        decoration: BoxDecoration(
-                                            color: Colors.redAccent,
-                                            borderRadius:
-                                                BorderRadius.circular(7)),
-                                        child: Icon(
-                                          Icons.add,
-                                          color: Colors.white,
-                                        ))
-                                  ],
-                                ),
-                              ],
-                            ),
-                          )
-                        ],
-                      ),
-                    )
+                    ),
                   ],
                 ),
+                const SizedBox(height: 10),
+                Container(
+                  height: 35,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const TextField(
+                    decoration: InputDecoration(
+                      border: InputBorder.none,
+                      hintText: "Search Name",
+                      prefixIcon: Icon(Icons.search, color: Colors.black),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 10),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      backgroundColor: const Color(0xffecefe8),
+      body: SingleChildScrollView(
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Categories Section
+              20.heightBox,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  "Categories".text.black.xl2.bold.make(),
+                  // "See all".text.red600.xl.bold.make(),
+                ],
               ),
+              20.heightBox,
+              Row(
+                children: [
+                  Container(
+                    height: 120,
+                    padding: const EdgeInsets.all(20),
+                    margin: const EdgeInsets.only(right: 20),
+                    decoration: BoxDecoration(
+                      color: Colors.redAccent,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Center(child: "All".text.white.xl.bold.make()),
+                  ),
+                  Expanded(
+                    child: Container(
+                      height: 120,
+                      child: ListView.builder(
+                          padding: EdgeInsets.zero,
+                          itemCount: categories.length,
+                          shrinkWrap: true,
+                          scrollDirection: Axis.horizontal,
+                          itemBuilder: (context, index) {
+                            return CategoryTile(
+                              image: categories[index],
+                              name: categoryName[index],
+                              email: widget.email,
+                            );
+                          }),
+                    ),
+                  ),
+                ],
+              ),
+              20.heightBox,
+              // All Products Section
+              "All Products".text.black.xl2.bold.make(),
+              20.heightBox,
+              allProducts.isEmpty
+                  ? const Center(
+                      child: CircularProgressIndicator(),
+                    )
+                  : GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2, // Number of columns
+                        crossAxisSpacing: 10, // Spacing between columns
+                        mainAxisSpacing: 10, // Spacing between rows
+                        childAspectRatio: 0.7, // Aspect ratio for each item
+                      ),
+                      itemCount: allProducts.length,
+                      itemBuilder: (context, index) {
+                        final product = allProducts[index];
+                        return ProductTile(
+                          name: product['name'] ?? 'Unknown',
+                          image: product['image'] ?? '',
+                          price: product['price'] ?? '0',
+                          detail: product['detail'] ?? 'No details',
+                          email: widget.email,
+                        );
+                      },
+                    ),
+            ],
+          ),
+        ),
       ),
     );
   }
 }
 
-class CatagoryTile extends StatelessWidget {
-  String image, name;
-  CatagoryTile({
+class CategoryTile extends StatelessWidget {
+  final String image, name, email;
+
+  const CategoryTile({
     required this.image,
     required this.name,
+    required this.email,
   });
 
   @override
@@ -307,13 +245,18 @@ class CatagoryTile extends StatelessWidget {
     return InkWell(
       onTap: () {
         Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (context) => CatagoryProducts(catagory: name)));
+          context,
+          MaterialPageRoute(
+            builder: (context) => CategoryProducts(
+              catagory: name,
+              email: email,
+            ),
+          ),
+        );
       },
       child: Container(
-        padding: EdgeInsets.all(20),
-        margin: EdgeInsets.only(right: 20),
+        padding: const EdgeInsets.all(20),
+        margin: const EdgeInsets.only(right: 20),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(10),
@@ -329,7 +272,93 @@ class CatagoryTile extends StatelessWidget {
               width: 50,
               fit: BoxFit.cover,
             ),
-            Icon(Icons.arrow_forward)
+            const Icon(Icons.arrow_forward),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class ProductTile extends StatelessWidget {
+  final String name;
+  final String image;
+  final String price;
+  final String detail;
+  final String email;
+
+  const ProductTile({
+    required this.name,
+    required this.image,
+    required this.price,
+    required this.detail,
+    required this.email,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => DetailsPage(
+              name: name,
+              image: image,
+              price: price,
+              detail: detail,
+              email: email,
+            ),
+          ),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.shade300,
+              blurRadius: 5,
+              spreadRadius: 2,
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: File(image).existsSync()
+                    ? Image.file(
+                        File(image),
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                      )
+                    : const Center(child: Text('No Image')),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text(
+                name,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: Text(
+                "\$${price}",
+                style: const TextStyle(
+                  color: Colors.green,
+                  fontSize: 12,
+                ),
+              ),
+            ),
           ],
         ),
       ),

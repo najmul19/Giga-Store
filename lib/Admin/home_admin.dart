@@ -14,77 +14,118 @@ class _HomeAdminState extends State<HomeAdmin> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xffecefe8),
+      backgroundColor: Color(0xfff1f3f6),
       appBar: AppBar(
-        backgroundColor: Color(0xffecefe8),
+        backgroundColor: Color(0xff1e2a47),
         centerTitle: true,
-        title: "Home Admin".text.xl3.bold.black.make(),
+        title: "Admin Dashboard".text.xl4.bold.white.make(),
       ),
       body: Container(
-        margin: EdgeInsets.only(left: 20, right: 20),
-        child: Column(
+        margin: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+        child: GridView.count(
+          crossAxisCount: 2, // Creates a 2-column grid
+          crossAxisSpacing: 20,
+          mainAxisSpacing: 20,
+          childAspectRatio: 1.5, // Adjust height/width ratio for the tiles
           children: [
-            50.heightBox,
-            InkWell(
+            _buildGridTile(
+              context,
+              icon: Icons.add,
+              title: "Add Product",
+              backgroundColor: Colors.green,
+              iconColor: Colors.white,
               onTap: () {
                 Navigator.push(context,
                     MaterialPageRoute(builder: (context) => AddProduct()));
               },
-              child: Material(
-                elevation: 3.0,
-                borderRadius: BorderRadius.circular(10),
-                child: Container(
-                  padding: EdgeInsets.only(top: 10, bottom: 10),
-                  width: MediaQuery.of(context).size.width,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.add,
-                        size: 50,
-                      ),
-                      20.widthBox,
-                      "Add Product".text.xl3.bold.black.make(),
-                    ],
-                  ),
-                ),
-              ),
             ),
-            80.heightBox,
-            InkWell(
+            _buildGridTile(
+              context,
+              icon: Icons.shopping_bag_outlined,
+              title: "All Orders",
+              backgroundColor: Colors.blueAccent,
+              iconColor: Colors.white,
               onTap: () {
                 Navigator.push(context,
                     MaterialPageRoute(builder: (context) => AllOrders()));
               },
-              child: Material(
-                elevation: 3.0,
-                borderRadius: BorderRadius.circular(10),
-                child: Container(
-                  padding: EdgeInsets.only(top: 10, bottom: 10),
-                  width: MediaQuery.of(context).size.width,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.shopping_bag_outlined,
-                        size: 50,
-                      ),
-                      20.widthBox,
-                      "All Orders".text.xl3.bold.black.make(),
-                    ],
-                  ),
-                ),
-              ),
+            ),
+            _buildGridTile(
+              context,
+              icon: Icons.pending_actions,
+              title: "Pending",
+              backgroundColor: Colors.orange,
+              iconColor: Colors.white,
+              onTap: () {
+                // Handle Pending Approvals Navigation
+              },
+            ),
+            _buildGridTile(
+              context,
+              icon: Icons.settings,
+              title: "Settings",
+              backgroundColor: Colors.redAccent,
+              iconColor: Colors.white,
+              onTap: () {
+                // Handle Settings Navigation
+              },
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGridTile(
+    BuildContext context, {
+    required VoidCallback onTap,
+    required IconData icon,
+    required String title,
+    required Color backgroundColor,
+    required Color iconColor,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Material(
+        elevation: 8.0,
+        borderRadius: BorderRadius.circular(15),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [backgroundColor.withOpacity(0.8), backgroundColor],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(15),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.3),
+                spreadRadius: 1,
+                blurRadius: 8,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 60,
+                color: iconColor,
+              ),
+              SizedBox(height: 10),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
